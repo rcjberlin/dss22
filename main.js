@@ -3,13 +3,13 @@ const DEFAULT_SUBMIT_PATH = "/api/v1/submit_run";
 
 const CHECK_LOGIN_PATH = "/api/v1/login_required";
 
-const DEFAULT_EVENT = "2020-berlin";
+const DEFAULT_EVENT = "2022-berlin";
 
 const TILE_ID_OFFSET = 1; // = id of start tile
 
-const LS_CURRENT_SCREEN = "rcj-currentScreen";
-const LS_DATA           = "rcj-data";
-const LS_RUN_HISTORY    = "rcj-runHistory";
+const LS_CURRENT_SCREEN = "rcj22ber-currentScreen";
+const LS_DATA           = "rcj22ber-data";
+const LS_RUN_HISTORY    = "rcj22ber-runHistory";
 
 const GAP          = "gap";
 const OBSTACLE     = "obstacle";
@@ -37,10 +37,10 @@ const POINTS_TILE_FIRST_TRY  = 5;
 const POINTS_TILE_SECOND_TRY = 3;
 const POINTS_TILE_THIRD_TRY  = 1;
 const POINTS_GAP          = 10;
-const POINTS_OBSTACLE     = 10;
+const POINTS_OBSTACLE     = 15;
 const POINTS_SPEEDBUMP    =  5;
-const POINTS_RAMP         =  5;
-const POINTS_INTERSECTION = 15;
+const POINTS_RAMP         =  0; // not used for RCJ 2022 Berlin
+const POINTS_INTERSECTION = 10;
 const POINTS_LOW_VICTIM_ALIVE   = 30;
 const POINTS_LOW_VICTIM_DEAD    = 20;
 const POINTS_HIGH_VICTIM_ALIVE  = 40;
@@ -64,12 +64,13 @@ let longBeep = function () {
 	window.navigator.vibrate(durationLongAlert*1.2);
 };
 
-let alerts = [{ time: 8*60 - 5, func: shortBeep, finished: false },
-			  { time: 8*60 - 4, func: shortBeep, finished: false },
-			  { time: 8*60 - 3, func: shortBeep, finished: false },
-			  { time: 8*60 - 2, func: shortBeep, finished: false },
-			  { time: 8*60 - 1, func: shortBeep, finished: false },
-			  { time: 8*60 - 0, func: longBeep, finished: false }];
+let MAX_TIME = 8*60;
+let alerts = [{ time: -5, func: shortBeep, finished: false },
+			  { time: -4, func: shortBeep, finished: false },
+			  { time: -3, func: shortBeep, finished: false },
+			  { time: -2, func: shortBeep, finished: false },
+			  { time: -1, func: shortBeep, finished: false },
+			  { time: -0, func: longBeep, finished: false }];
 
 let data = {};
 let competitions = {};
@@ -204,7 +205,7 @@ let getRunTimeAsString = function () {
 };
 
 let getRemainingTimeAsString = function () {
-    let time = 8*60 - Math.floor(getRunTimeInSeconds());
+    let time = MAX_TIME - Math.floor(getRunTimeInSeconds());
     return (time < 0 ? "-" : "") + getSecondsAsTimeString(Math.abs(time));
 };
 
@@ -254,6 +255,7 @@ let btnSetTime = function () {
 };
 
 let initializeTime = function () {
+	setMaxTimeBasedOnRoundName();
 	if (data["currentRun"] !== null) {
 		updateTime();
 		if (isTimeRunning()) {
@@ -270,7 +272,7 @@ let checkForAlerts = function () {
 	let time = getRunTimeInSeconds();
 	let diff;
 	for (let i=0; i<alerts.length; i++) {
-		diff = time - alerts[i].time;
+		diff = time - (MAX_TIME + alerts[i].time);
 		if (diff > 0 && diff < 1 && alerts[i].finished === false) {
 			alerts[i].func();
 			alerts[i].finished = true;
@@ -496,11 +498,12 @@ let onInputTimeModalMinutes = function (e) {
 		el.value = value;
 		return;
 	}
+	const maxMinutes = Math.floor((MAX_TIME / 60) + (MAX_TIME % 60 === 0 ? 0 : 1));
 	if (el.value < 0) {
 		el.value = 0;
 		document.getElementById("time-modal-seconds").value = 0;
-	} else if (el.value > 7) {
-		el.value = 8;
+	} else if (el.value > maxMinutes - 1) {
+		el.value = maxMinutes;
 		document.getElementById("time-modal-seconds").value = 0;
 	}
 };
@@ -528,8 +531,9 @@ let onInputTimeModalSeconds = function (e) {
 let onClickTimeModalMinutesPlus = function () {
 	let el = document.getElementById("time-modal-minutes");
 	el.value = Number(el.value) + 1;
-	if (el.value > 7) {
-		el.value = 8;
+	const maxMinutes = Math.floor((MAX_TIME / 60) + (MAX_TIME % 60 === 0 ? 0 : 1));
+	if (el.value > maxMinutes - 1) {
+		el.value = maxMinutes;
 		document.getElementById("time-modal-seconds").value = 0;
 	}
 	makeTimeDoubleDigit();
@@ -664,6 +668,17 @@ let onChangeInputArena = function () {
 let onChangeInputRound = function () {
 	changeLocalData("round", document.getElementById("round").value);
 };
+
+function setMaxTimeBasedOnRoundName () {
+	const r = data["currentRun"]["round"];
+	if (r.includes("Video")) {
+		MAX_TIME = 4*60;
+	} else if (r.includes("Live")) {
+		MAX_TIME = 5*60;
+	} else {
+		MAX_TIME = 8*60;
+	}
+}
 
 let setSelectInputOptions = function (selectId, options) {
 	let selectInput = document.getElementById(selectId);
@@ -1083,6 +1098,14 @@ let initScreen3 = function () {
 	// evacuation point
 	txt = data["currentRun"]["evacuationPoint"];
 	document.getElementById("s3-txt-evacuation-point").innerHTML = txt;
+
+	// time + last checkpoint
+	setMaxTimeBasedOnRoundName();
+	if (data["currentRun"]["round"].includes("Video Victims")) {
+		getCurrentSection()["isAfterLastCheckpoint"] = true;
+		updateLastCheckpointButton();
+		saveDataToLocalStorage();
+	}
 };
 
 let templateS5Section = `
@@ -1155,13 +1178,6 @@ let initScreen5 = function () {
 	}
 	for (let elementId of elementIds) {
 		document.getElementById(elementId).disabled = !alc;
-	}
-
-	// entry: disable dead victims and exit-bonus
-	if (data["currentRun"]["competition"] === COMPETITION_ENTRY) {
-		for (let elementId of ["victims-dead-before", "victims-dead-after", "left-evacuation-zone"]) {
-			document.getElementById(elementId).disabled = true;
-		}
 	}
 };
 
@@ -1238,9 +1254,9 @@ let stopTimeAndCutTo8Minutes = function () {
 	if (isTimeRunning()) {
 		toggleTimeRunning();
 	}
-	if (getRunTimeInSeconds() > 8*60) {
+	if (getRunTimeInSeconds() > MAX_TIME) {
 		data["currentRun"]["originalValues"]["time"] = getRunTimeInSeconds();
-		data["currentRun"]["time"]["timeOffset"] = 8*60;
+		data["currentRun"]["time"]["timeOffset"] = MAX_TIME;
 	}
 };
 
@@ -1314,16 +1330,10 @@ let updateSumInReviewTable = function () {
 
 let updateReviewAfterLastCheckpoint = function () {
 	document.getElementById("review-after-last-checkpoint-lops").value = data["currentRun"]["sections"][data["currentRun"]["sections"].length-1].lops;
-	if (data["currentRun"]["sections"][data["currentRun"]["sections"].length-1].isAfterLastCheckpoint
-		&& data["currentRun"]["competition"] !== COMPETITION_ENTRY) {
+	if (data["currentRun"]["sections"][data["currentRun"]["sections"].length-1].isAfterLastCheckpoint) {
 		document.getElementById("review-after-last-checkpoint-lops").disabled = false;
 	} else {
 		document.getElementById("review-after-last-checkpoint-lops").disabled = true;
-	}
-	if (data["currentRun"]["competition"] === COMPETITION_ENTRY) {
-		document.getElementById("review-alc-lops-note").innerText = "doesn't affect scoring";
-	} else {
-		document.getElementById("review-alc-lops-note").innerText = "";
 	}
 	document.getElementById("review-dead-victims-before").innerHTML = data["currentRun"]["victims"]["deadVictimsBeforeAllLivingVictims"];
 	document.getElementById("review-living-victims").innerHTML      = data["currentRun"]["victims"]["livingVictims"];
@@ -1586,6 +1596,8 @@ let initS8RunHistoryList = function () {
 		el.innerHTML += " (";
 		el.innerHTML += runHistory[runId]["scoring"]["score"];
 		el.innerHTML += ", ";
+		el.innerHTML += "M: [" + String(runHistory[runId]["scoring"]["multipliers"]) + "] = " + String(runHistory[runId]["scoring"]["multiplier"]);
+		el.innerHTML += ", ";
 		el.innerHTML += getSecondsAsTimeString(runHistory[runId]["time_duration"]);
 		el.innerHTML += ")";
 		el.innerHTML += "<br>";
@@ -1609,6 +1621,30 @@ let btnS8ExportRunHistory = function () {
 	downloadJSON(runHistory, "runHistory-"+(new Date()).toISOString()+".json");
 };
 
+function btnS8ExportScores () {
+	const scores = {};
+	for (const runId in runHistory) {
+		const run = runHistory[runId];
+		scores[runId] = {
+			refereeName: run?.referee?.name,
+			competition: run?.competition,
+			arena: run?.arena,
+			round: run?.round,
+			teamname: run?.teamname,
+			time_duration: run?.time_duration,
+			score: run?.scoring?.score,
+			multipliers: run?.scoring?.multipliers,
+			multiplier: run?.scoring?.multiplier,
+			lastSectionLops: (run?.scoring?.sections || [])[run?.scoring?.sections?.length]?.lops,
+			lastSectionAlc: (run?.scoring?.sections || [])[run?.scoring?.sections?.length]?.isAfterLastCheckpoint,
+			comments: run?.comments,
+			confirmed: run?.confirmed,
+			complaints: run?.complaints,
+		}
+	}
+	downloadJSON(scores, "runHistory-scores-"+(new Date()).toISOString()+".json");
+}
+
 let downloadJSON = function (object, filename) {
 	let hiddenElement = document.createElement("a");
 	hiddenElement.href = "data:text/json;charset=utf-8," + encodeURI(JSON.stringify(object));
@@ -1631,7 +1667,11 @@ let btnS8SubmitAllFailedAgain = function () {
 };
 
 let getRunIdentifier = function (run) {
-	return run["competition"] + "-" + run["round"] + "-" + run["arena"] + "-" + run["teamname"];
+	if (!run["id"]) {
+		const uniqueStr = Math.random().toString(36).slice(2);
+		run["id"] = run["competition"] + "-" + run["round"] + "-" + run["arena"] + "-" + run["teamname"] + "-" + uniqueStr;
+	}
+	return run["id"];
 };
 
 let tryToSubmitRun = async function () {
@@ -1672,13 +1712,14 @@ let checkWhetherRunCanBeSubmitted = function () {
 };
 
 let getRunSubmitObject = function () {
+	const scoring = calculateScore(data["currentRun"]);
 	return {
 		referee: cloneObject(data["currentRun"]["referee"]),
 		competition: data["event"] + "-" + data["currentRun"]["competition"],
 		arena: data["currentRun"]["arena"],
-		round: Number(data["currentRun"]["round"].replace(/^\D+/g, "")), // replace all non-digits with empty string and cast to int
+		round: Number(data["currentRun"]["round"].replace(/\D+/g, "")[0]), // replace all non-digits with empty string and cast to int
 		teamname: data["currentRun"]["teamname"],
-		time_duration: Math.min(8*60, Math.round(data["currentRun"]["time"]["timeOffset"])),
+		time_duration: Math.min(MAX_TIME, Math.round(data["currentRun"]["time"]["timeOffset"])),
 		time_start: Math.round(data["currentRun"]["time"]["timestampRunStart"]*1000), // convert unix timestamps back to ms
 		time_end: Math.round(data["currentRun"]["time"]["timestampRunEnd"]*1000),
 		scoring: {
@@ -1687,7 +1728,7 @@ let getRunSubmitObject = function () {
 			sections: cloneObject(data["currentRun"]["sections"]),
 			victims: cloneObject(data["currentRun"]["victims"]),
 			leftEvacuationZone: data["currentRun"]["leftEvacuationZone"],
-			score: calculateScore(data["currentRun"]),
+			...scoring,
 		},
 		comments: data["currentRun"]["comments"],
 		confirmed: data["currentRun"]["confirmedByTeamCaptain"],
@@ -1732,34 +1773,49 @@ let calculateScore = function (run) {
 		//  -> can safely calculate deduction based on last section
 		lopsAfterLastCheckpoint = run["sections"][run["sections"].length-1]["lops"];
 	}
-	let deduction = lopsAfterLastCheckpoint * POINTS_DEDUCTION_LOP;
+
+	function float(f, prec=10) {
+		return parseFloat(parseFloat(f).toFixed(prec));
+	}
+	function get_multiplier(multiplier, count, deduction) {
+		return float(Math.max(1, Math.max(1, multiplier - deduction) ** count));
+	}
+
+	const multipliers = [];
 
 	if (run["competition"] === COMPETITION_ENTRY) {
-		score += run["victims"]["livingVictims"] * POINTS_ENTRY_VICTIM;
-	} else if (run["competition"] === COMPETITION_LINE) {
-		let pointsVictimAlive = null, pointsVictimDead = null;
-		if (run["evacuationPoint"] === "low") {
-			pointsVictimAlive = POINTS_LOW_VICTIM_ALIVE;
-			pointsVictimDead = POINTS_LOW_VICTIM_DEAD;
-		} else if (run["evacuationPoint"] === "high") {
-			pointsVictimAlive = POINTS_HIGH_VICTIM_ALIVE;
-			pointsVictimDead = POINTS_HIGH_VICTIM_DEAD;
+		const lv = run["victims"]["livingVictims"];
+		const dv = run["victims"]["deadVictimsBeforeAllLivingVictims"] + run["victims"]["deadVictimsAfterAllLivingVictims"];
+		const deduction = 0.05 * lopsAfterLastCheckpoint;
+
+		multipliers.push(get_multiplier(1.4, lv, deduction));
+		if (dv > 0) {
+			if (lv == 0) {
+				multipliers.push(get_multiplier(1.2, dv, deduction));
+			} else {
+				multipliers.push(get_multiplier(1.4, dv, deduction));
+			}
 		}
-		let pointsVictimDeadBefore = POINTS_VICTIM_DEAD_BEFORE;
+	} else if (run["competition"] === COMPETITION_LINE) {
+		const lv = run["victims"]["livingVictims"];
+		const dv = run["victims"]["deadVictimsBeforeAllLivingVictims"] + run["victims"]["deadVictimsAfterAllLivingVictims"];
+		const deduction = (run["evacuationPoint"] === "low" ? 0.025 : 0.05) * lopsAfterLastCheckpoint;
 
-		score += run["victims"]["livingVictims"]
-				* Math.max(0, pointsVictimAlive - deduction);
-		score += run["victims"]["deadVictimsAfterAllLivingVictims"]
-				* Math.max(0, pointsVictimDead - deduction);
-		score += run["victims"]["deadVictimsBeforeAllLivingVictims"]
-				* Math.max(0, pointsVictimDeadBefore - deduction);
+		if (run["evacuationPoint"] === "low") {
+			multipliers.push(get_multiplier(1.2, lv, deduction));
+			if (lv == 2) multipliers.push(get_multiplier(1.2, dv, deduction));
+		} else if (run["evacuationPoint"] === "high") {
+			multipliers.push(get_multiplier(1.4, lv, deduction));
+			if (lv == 2) multipliers.push(get_multiplier(1.4, dv, deduction));
+		}
 	}
 
-	if (run["competition"] === COMPETITION_LINE && run["leftEvacuationZone"]) {
+	/*if (run["competition"] === COMPETITION_LINE && run["leftEvacuationZone"]) {
 		score += POINTS_FINDING_LINE;
-	}
+	}*/
 
-	return score;
+	const multiplier = float(multipliers.reduce((total, cur) => total * cur, 1));
+	return { score, multipliers, multiplier };
 };
 
 let submitRunAndShowResult = function (runSubmit, showResultOnlyInRunHistory) {
@@ -1956,7 +2012,7 @@ let showWarningIfTimeIsNotRunning = function () {
 };
 
 let showWarningIfTimeIsOver = function () {
-	if (getRunTimeInSeconds() > 8*60) {
+	if (getRunTimeInSeconds() > MAX_TIME) {
 		showNotification("WARNING: Time is over!", 3000);
 	}
 };
@@ -2089,9 +2145,13 @@ let readCredentialsFromURLIfSupplied = function () {
 };
 
 let showVersionInS8 = async function () {
-	let c = await caches.keys();
-	let cacheName = c[0];
-	document.getElementById("s8-version").innerText = cacheName.split("_",2)[1];
+	try {
+		let c = await caches.keys();
+		let cacheName = c[0];
+		document.getElementById("s8-version").innerText = cacheName.split("_",2)[1];
+	} catch (err) {
+		document.getElementById("s8-version").innerText = "version unknown";
+	}
 };
 
 /*let btnReload = function () {

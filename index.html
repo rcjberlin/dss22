@@ -376,7 +376,7 @@
 				<div class="element-wrapper">
 					<div id="s4-btn-last-checkpoint" class="element-wrapper white" style="top: 2%; height: 96%;">
 						<div class="centered-text-box s4-text-last-checkpoint">
-							Last Checkpoint
+							After Last Checkpoint
 						</div>
 					</div>
 				</div>
@@ -427,7 +427,6 @@
 						</div>
 						<div class="table-layout-column-right">
 							<input type="number" id="victims-dead-before" class="table-layout-cell-right" min="0" />
-							<span class="disabled">(before living victims)</span>
 						</div>
 						<p class="clear" />
 					</div>
@@ -442,7 +441,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div>
+					<div style="display: none;">
 						<div class="table-layout-column-left">
 							<label for="vicitims-dead-after" class="table-layout-cell-left">Dead Victims</label>
 						</div>
@@ -453,7 +452,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div class="table-layout-vertical-space-above">
+					<div style="display: none;" class="table-layout-vertical-space-above">
 						<div class="table-layout-column-left">
 							<p class="table-layout-cell-left"></p>
 						</div>
@@ -530,7 +529,6 @@
 						</div>
 						<div class="table-layout-column-right">
 							<span id="review-dead-victims-before" class="table-layout-cell-right disabled"></span>
-							<span class="disabled">(before living victims)</span>
 						</div>
 						<p class="clear" />
 					</div>
@@ -545,7 +543,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div>
+					<div style="display: none;">
 						<div class="table-layout-column-left">
 							<span class="table-layout-cell-left">Dead Victims</span>
 						</div>
@@ -566,7 +564,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div class="table-layout-vertical-space-above">
+					<div style="display: none;" class="table-layout-vertical-space-above">
 						<div class="table-layout-column-left">
 							<p class="table-layout-cell-left"></p>
 						</div>
@@ -777,6 +775,7 @@
 					
 					<h2>Run History</h2>
 					<button type="button" onclick="btnS8ExportRunHistory()">Export Run History</button>
+					<button type="button" onclick="btnS8ExportScores()">Export Scores</button>
 					<button type="button" onclick="btnS8SubmitAllFailedAgain()">Submit All Failed Again</button>
 					
 					<p id="s8-run-history" style="margin-top: 2vh;"></p>

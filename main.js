@@ -440,14 +440,17 @@ let addEventListenersForInputs = function () {
 	document.getElementById("referee-name").addEventListener("change", onChangeInputRefereeName);
 	document.getElementById("referee-password").addEventListener("change", onChangeInputRefereePassword);
 	document.getElementById("competition").addEventListener("change", onChangeInputCompetition);
-	document.getElementById("arena").addEventListener("change", onChangeInputArena);
+	document.getElementById("arena").addEventListener("change", () => onChangeInputArena("arena"));
 	document.getElementById("round").addEventListener("change", onChangeInputRound);
 	
 	document.getElementById("teamname").addEventListener("change", onChangeInputTeamname);
-	document.getElementById("evacuation-point-low").addEventListener("change", onChangeInputEvacuationPoint);
-	document.getElementById("evacuation-point-high").addEventListener("change", onChangeInputEvacuationPoint);
+	document.getElementById("evacuation-point-low").addEventListener("change", () => onChangeInputEvacuationPoint("evacuation-point-high"));
+	document.getElementById("evacuation-point-high").addEventListener("change", () => onChangeInputEvacuationPoint("evacuation-point-high"));
 	
 	document.getElementById("team-showed-up").addEventListener("change", onChangeInputTeamShowedUp);
+	document.getElementById("s3-arena").addEventListener("change", () => onChangeInputArena("s3-arena"));
+	document.getElementById("s3-evacuation-point-low").addEventListener("change", () => onChangeInputEvacuationPoint("s3-evacuation-point-high"));
+	document.getElementById("s3-evacuation-point-high").addEventListener("change", () => onChangeInputEvacuationPoint("s3-evacuation-point-high"));
 	
 	document.getElementById("s5-tiles-per-section").addEventListener("change", onChangeInputS5TileInput);
 	document.getElementById("s5-tile-ids").addEventListener("change", onChangeInputS5TileInput);
@@ -639,6 +642,7 @@ let onChangeInputCompetition = function () {
 	}
 	
 	setSelectInputOptions("arena", competitionInfo["arenas"]);
+	setSelectInputOptions("s3-arena", competitionInfo["arenas"]);
 	setSelectInputOptions("round", competitionInfo["rounds"]);
 	setSelectInputOptions("teamname", competitionInfo["teams"]);
 	
@@ -647,12 +651,10 @@ let onChangeInputCompetition = function () {
 	
 	// evacuation point
 	document.getElementById("evacuation-point-low").checked = true;
-	if (selectedCompetition === COMPETITION_ENTRY) {
-		document.getElementById("evacuation-point-low").disabled = true;
-		document.getElementById("evacuation-point-high").disabled = true;
-	} else {
-		document.getElementById("evacuation-point-low").disabled = false;
-		document.getElementById("evacuation-point-high").disabled = false;
+	document.getElementById("s3-evacuation-point-low").checked = true;
+	for (const inputId of ["evacuation-point-low", "evacuation-point-high",
+			"s3-evacuation-point-low", "s3-evacuation-point-high"]) {
+		document.getElementById(inputId).disabled = selectedCompetition === COMPETITION_ENTRY;
 	}
 	
 	// save to data / Local Storage
@@ -661,8 +663,9 @@ let onChangeInputCompetition = function () {
 	changeLocalData("round", document.getElementById("round").value);
 };
 
-let onChangeInputArena = function () {
-	changeLocalData("arena", document.getElementById("arena").value);
+let onChangeInputArena = function (id="arena") {
+	changeLocalData("arena", document.getElementById(id).value);
+	document.getElementById(id === "arena" ? "s3-arena" : "arena").value = document.getElementById(id).value;
 };
 
 let onChangeInputRound = function () {
@@ -713,8 +716,10 @@ let onChangeInputTeamname = function () {
 				 document.getElementById("evacuation-point-high").checked ? "high" : "low");
 };
 
-let onChangeInputEvacuationPoint = function () {
-	data["currentRun"]["evacuationPoint"] = document.getElementById("evacuation-point-high").checked ? "high" : "low";
+let onChangeInputEvacuationPoint = function (idEvacuationPointHigh="evacuation-point-high") {
+	data["currentRun"]["evacuationPoint"] = document.getElementById(idEvacuationPointHigh).checked ? "high" : "low";
+	document.getElementById("evacuation-point-" + data["currentRun"]["evacuationPoint"]).checked = true;
+	document.getElementById("s3-evacuation-point-" + data["currentRun"]["evacuationPoint"]).checked = true;
 	saveDataToLocalStorage();
 };
 
@@ -2129,6 +2134,7 @@ let initializeInputs = function () {
 	changeLocalData("round", round);
 	
 	document.getElementById("arena").value = data["arena"];
+	document.getElementById("s3-arena").value = data["arena"];
 	document.getElementById("round").value = data["round"];
 	
 	if (run !== null) {

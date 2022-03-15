@@ -182,7 +182,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div>
+					<div style="display: none;">
 						<div class="table-layout-column-left">
 							<span class="table-layout-cell-left">Evacuation Point</span>
 						</div>
@@ -192,7 +192,7 @@
 						<p class="clear" />
 					</div>
 					
-					<div class="table-layout-vertical-space-above">
+					<div><!-- class="table-layout-vertical-space-above">-->
 						<div class="table-layout-column-left">
 							<p class="table-layout-cell-left"></p>
 						</div>
@@ -201,6 +201,28 @@
 						</div>
 						<p class="clear" />
 					</div>
+
+					<h2>Arena and Evacuation Point</h2>
+					<div>
+						<div class="table-layout-column-left">
+							<label for="s3-arena" class="table-layout-cell-left">Arena/Parcours</label>
+						</div>
+						<div class="table-layout-column-right">
+							<select id="s3-arena" class="table-layout-cell-right"></select>
+						</div>
+						<p class="clear" />
+					</div>
+					<div>
+						<div class="table-layout-column-left">
+							<label for="s3-evacuation-point" class="table-layout-cell-left">Evacuation Point</label>
+						</div>
+						<div class="table-layout-column-right">
+							<label><input type="radio" name="s3-evacuation-point" id="s3-evacuation-point-low"> low</label>
+							<label><input type="radio" name="s3-evacuation-point" id="s3-evacuation-point-high"> high</label>
+						</div>
+						<p class="clear" />
+					</div>
+
 					
 					<h2>Time</h2>
 					<table border="0" cellspacing="0" width="100%"><tr>

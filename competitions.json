@@ -3,6 +3,7 @@
 		"arenas": ["Arena E1", "Arena E2", "Arena E3", "Arena E4"],
 		"rounds": ["Round 1 (Video Run 1)", "Round 2 (Video Run 2)", "Round 3 (Video Victims)", "Round 4 (Live Saturday)"],
 		"teams": [
+			"__TEST_LINE_ENTRY__",
 			"Alpha Team",
 			"edgar1_1",
 			"EV12",
@@ -25,6 +26,7 @@
 		"arenas": ["Arena L1", "Arena L2", "Arena L3", "Arena L4"],
 		"rounds": ["Round 1 (Video Run 1)", "Round 2 (Video Run 2)", "Round 3 (Video Victims)", "Round 4 (Live Saturday)"],
 		"teams": [
+			"__TEST_LINE__",
 			"Ad astra",
 			"athe1",
 			"athe2",

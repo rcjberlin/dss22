@@ -1186,6 +1186,39 @@ let initScreen5 = function () {
 	}
 };
 
+function btnS5AutoFillTiles () {
+	resetWarningTilesPerSectionAutoFill();
+	try {
+		const tileIdsAllArenas = competitions[data["currentRun"]["competition"]].tileIds;
+		const indexOfCurrentArena = competitions[data["currentRun"]["competition"]].arenas.indexOf(data["currentRun"]["arena"]);
+		if (indexOfCurrentArena < 0 || indexOfCurrentArena > tileIdsAllArenas.length) {
+			return showWarningTilesPerSectionAutoFill("No data found.")
+		}
+		const tileIds = tileIdsAllArenas[indexOfCurrentArena];
+		for (let i=0; i<data["currentRun"]["sections"].length; i++) {
+			if (i >= tileIds.length) break;
+			section = data["currentRun"]["sections"][i];
+			section.tiles = tileIds[i] - (i === 0 ? 1 : tileIds[i-1]);
+		}
+		if (tileIds.length + 1 !== data["currentRun"]["sections"].length) {
+			showWarningTilesPerSectionAutoFill("Number of sections of the scoring run does not match with sections defined for the arena. Please check that the auto-filled values are correct.");
+		}
+		initScreen5(); // <-- updates input fields
+		saveDataToLocalStorage();
+	} catch (err) {
+		showWarningTilesPerSectionAutoFill(`Failed to auto-fill tiles (${err?.message})`);
+	}
+}
+
+function showWarningTilesPerSectionAutoFill (txtWarning) {
+	document.getElementById("s5-text-warning-auto-fill").innerText = "Warning: " + txtWarning;
+	document.getElementById("s5-box-warning-auto-fill").style.display = "";
+}
+function resetWarningTilesPerSectionAutoFill () {
+	document.getElementById("s5-text-warning-auto-fill").innerText = "";
+	document.getElementById("s5-box-warning-auto-fill").style.display = "none";
+}
+
 let onChangeInputTiles = function () {
 	let isEnteringTilesPerSection = true;
 	if (document.getElementById("s5-tile-ids").checked === true) {
@@ -1943,6 +1976,7 @@ let sectionComplete = function () {
 		showNotification("You can't complete a section after last checkpoint", 1500);
 		return;
 	}
+	if (verifyThatNotBehindLastCheckpointAccordingToMetadata() === false) return;
 	addClassForShortTimeToParent("s4-btn-section-complete", "active-add");
 	getCurrentSection().completedSection = true;
 	createNewSection();
@@ -1985,6 +2019,7 @@ let sectionSkip = function () {
 		showNotification("Skipping is only allowed after 3 attempts", 1500);
 		return;
 	}
+	if (verifyThatNotBehindLastCheckpointAccordingToMetadata() === false) return;
 	addClassForShortTimeToParent("s4-btn-section-skip", "active-add");
 	getCurrentSection().lops += 1;
 	getCurrentSection().skippedSection = true;
@@ -2007,12 +2042,53 @@ let undoSectionSkip = function () {
 };
 
 let toggleLastCheckpoint = function () {
+	if (verifyForLastCheckpointThatCurrentSectionMatchesWithArenaMetadata() === false) return;
 	getCurrentSection()["isAfterLastCheckpoint"] = !getCurrentSection()["isAfterLastCheckpoint"];
 	writeLog(LOG_LAST_CHECKPOINT);
 	
 	saveDataToLocalStorage();
 	updateUIElementsS4();
 };
+
+function verifyThatNotBehindLastCheckpointAccordingToMetadata () {
+	const numberOfSectionsArena = getNumberOfSectionsFromArenaMetadata();
+	if (numberOfSectionsArena > 0 && data["currentRun"]["sections"].length >= numberOfSectionsArena + 1) {
+		return confirm(`Are you sure? The arena metadata indicates that there are ${numberOfSectionsArena} sections.`
+					+ ` You are currently in section ${data["currentRun"]["sections"].length}.`);
+	}
+	return true;
+}
+function verifyForLastCheckpointThatCurrentSectionMatchesWithArenaMetadata () {
+	/**
+	 * if one wants to set ALC to true but current section does not match with
+	 * total number of sections, we ask the referee to confirm this
+	 */
+	if (getCurrentSection()["isAfterLastCheckpoint"]) {
+		return true;
+	}
+	const numberOfSectionsArena = getNumberOfSectionsFromArenaMetadata();
+	if (numberOfSectionsArena > 0 && numberOfSectionsArena + 1 !== data["currentRun"]["sections"].length) {
+		return confirm(`Are you sure? The arena metadata indicates that there are ${numberOfSectionsArena} sections.`
+					+ ` You are currently in section ${data["currentRun"]["sections"].length}.`
+					+ ` Pressing this button is expected when you are in section ${numberOfSectionsArena+1}.`
+					+ ` Make sure that you mark the last section as completed/skipped before pressing the 'After Last Checkpoint' button.`
+					+ ` Press Ok if you still want to set 'After Last Checkpoint', otherwise Cancel/Escape.`);
+	}
+	return true;
+}
+function getNumberOfSectionsFromArenaMetadata () {
+	try {
+		const tileIdsAllArenas = competitions[data["currentRun"]["competition"]].tileIds;
+		const indexOfCurrentArena = competitions[data["currentRun"]["competition"]].arenas.indexOf(data["currentRun"]["arena"]);
+		if (indexOfCurrentArena < 0 || indexOfCurrentArena > tileIdsAllArenas.length) {
+			// no data found
+			return -1;
+		}
+		const tileIds = tileIdsAllArenas[indexOfCurrentArena];
+		return tileIds.length || -1;
+	} catch (err) {}
+	return -1;
+}
 
 let undoToggleLastCheckpoint = function () {
 	getCurrentSection()["isAfterLastCheckpoint"] = !getCurrentSection()["isAfterLastCheckpoint"];

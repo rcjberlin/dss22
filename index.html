@@ -425,11 +425,22 @@
 						<div class="table-layout-column-right">
 							<label><input type="radio" name="s5-tile-input" id="s5-tiles-per-section">Tiles per Section (Diff)</label>
 							<label><input type="radio" name="s5-tile-input" id="s5-tile-ids">Tile Ids</label>
+							<button style="margin: 6px;" onclick="btnS5AutoFillTiles()">Auto-fill based on Arena</button>
 						</div>
 						<p class="clear" />
 					</div>
 
 					<div id="s5-tiles" class="table-layout-vertical-space-above">
+					</div>
+
+					<div id="s5-box-warning-auto-fill" style="margin-bottom: 6px;">
+						<div class="table-layout-column-left">
+							<p class="table-layout-cell-left"></p>
+						</div>
+						<div class="table-layout-column-right">
+							<span id="s5-text-warning-auto-fill"></span>
+						</div>
+						<p class="clear" />
 					</div>
 
 					<div id="s5-box-warning">

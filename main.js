@@ -1666,6 +1666,18 @@ let btnS8SubmitAllFailedAgain = function () {
 	}
 };
 
+function btnS8DeleteRunHistory () {
+	loadRunHistoryFromLocalStorage();
+	if (Object.keys(runHistory).length === 0) return;
+	if (!confirm(`Do you really want to delete the run history?`
+			+ ` It will be difficult to restore it.`)) return;
+	const lsKey = LS_RUN_HISTORY + "-bak-" + String(Date.now());
+	localStorage.setItem(lsKey, JSON.stringify(runHistory));
+	runHistory = {};
+	saveRunHistoryToLocalStorage();
+	initS8RunHistoryList();
+}
+
 let getRunIdentifier = function (run) {
 	if (!run["id"]) {
 		const uniqueStr = Math.random().toString(36).slice(2);
